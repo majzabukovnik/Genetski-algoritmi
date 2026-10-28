@@ -1,0 +1,14 @@
+Anna {“likes”: [16, 17], “dislikes”: [8, 9]}
+Brian {“likes”: [15, 16], “dislikes”: [11, 13]}
+Charles {“likes”: [14, 17], “dislikes”: [10, 12]}
+Diana {“likes”: [15, 16], “dislikes”: [8, 11]}
+Eva {“likes”: [10, 11], “dislikes”: [12, 13]}
+Filip {“likes”: [14, 17], “dislikes”: [11, 14]}
+Gregor {“likes”: [8, 9], “dislikes”: [12, 15]}
+Helena {“likes”: [15, 16], “dislikes”: [10, 11]}
+Igor {“likes”: [16, 18], “dislikes”: [12, 15]}
+Jana {“likes”: [10, 13], “dislikes”: [13, 14]}
+Klemen {“likes”: [12, 15], “dislikes”: [11, 12]}
+Lara {“likes”: [9, 10], “dislikes”: [10, 11]}
+Matej {“likes”: [11, 12], “dislikes”: [9, 10]}
+Nina {“likes”: [15, 18], “dislikes”: [11, 13]}

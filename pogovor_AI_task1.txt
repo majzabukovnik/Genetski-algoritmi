@@ -1,0 +1,260 @@
+Transkripcija pogovora z AI (Claude) – Seminarska naloga 1, Task 1
+Datum: 27. 10. 2026
+==================================================================
+
+[UPORABNIK]
+preberi navodila v pdf in si oglej txt datoteke. rešujeva task 1. vendar ti mi nikakor ne podaš rešitve, ampak mi pomagaš razmišljati in me usmerjaš. preberi 1. nalogo in ko boš greva z idejami
+
+[AI]
+(prebere IS_Seminar_1_2026-1.pdf ter Classes.txt, Classrooms.txt, Teachers.txt, Preferences.txt)
+
+Prebral sem navodila in vse štiri txt datoteke. Za Task 1 je cilj: GA (PyGAD) sestavi enodnevni urnik, kjer ima vsako predavanje dodeljeno učilnico, začetni čas in učitelja, pri tem pa veljajo trdi pogoji. Učilnica mora biti v tistem času na voljo, v isti učilnici se predavanja ne prekrivajo, učitelj ne uči dveh hkrati in vsako predavanje je v urniku. Zraven rabiš še fitness funkcijo in izpis urnika. Optimum ni zahtevan, GA mora samo delovati.
+
+Dve stvari sem opazil, preden začneva:
+- Pri podatkih se splača en hiter izračun. Koliko je vseh predavanj, koliko ur skupaj zahtevajo in koliko ur ponujajo vse učilnice skupaj? Poglej, kako tesno je to. P2 je odprta od 8h, ostale šele od 10h.
+- Navodila zahtevajo, da oddaš log pogovora z AI. Ta pogovor bo torej del oddaje.
+
+Prvo vprašanje je reprezentacija, ker od nje zavisi vse ostalo.
+
+PyGAD dela z enim kromosomom, ki je ploščat vektor števil. Razmisli o tem:
+
+1. Katere odločitve so za posamezno predavanje sploh odprte? Kaj je fiksno že iz vhoda in kaj mora GA izbrati?
+2. Kako bi te odločitve zakodiral v števila? Kakšna je potem dolžina kromosoma in kaj pomeni posamezen gen?
+3. Kakšna je zaloga vrednosti vsakega gena? PyGAD ima parameter gene_space, s katerim lahko vsakemu genu posebej omejiš dovoljene vrednosti. Kaj bi ti to prihranilo pri fitness funkciji?
+
+Ko boš imel predlog, ga kar napiši, tudi če je grob. Potem ga skupaj preizkusiva: kateri pogoji iz navodil so z reprezentacijo zagotovljeni že po konstrukciji in katere mora kaznovati fitness. Če se mi bo zdelo, da kje zaideš, ti bom ugovarjal.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+kromosom (array) bo imel toliko elementov kot je vsota razpoložljivih ur po vseh predavalnicah. šlo bo po vrsti predavalnice kot so zapisane v txt. na vsakem mestu bo bodisi prazen string bodisi string sestavljen iz imena predmeta in izvajalca.
+
+[AI]
+Predlog ima eno pravo prednost, vidim pa tudi resen problem. Ugovarjam ti s konkretnim primerom.
+
+Kar je dobro: dva trda pogoja dobiš zastonj, že po konstrukciji. Predavanje je lahko samo v uri, ko je učilnica odprta, in v eni učilnici je v eni uri največ eno predavanje. Fitness ju sploh ne rabi preverjati. Ta ideja je vredna, da jo obdržiš v glavi.
+
+Problem: predavanje tu nima identitete. Imaš samo posamezne ure z oznako. Poskusi dekodirati tale kos kromosoma za P2 (8h–16h):
+
+    [Prog-Anna, Prog-Anna, Prog-Anna, Prog-Anna, Prog-Anna, "", "", ""]
+
+Je to 2+3 (veljavno), 3+2 ali 2+2+1? Kako iz tega ugotoviš, ali je vsako predavanje iz Classes.txt (Programming [2, 3, 2, 2]) prisotno natanko enkrat in v pravi dolžini? Kaj pa, če Prog-Anna stoji v 8h, Prog-Brian v 9h in spet Prog-Anna v 10h?
+
+Preden se odločiš, razmisli še o treh stvareh:
+
+1. Kaj naredita mutacija in crossover z blokom ur? Recimo, da imaš lepo 3-urno predavanje in mutacija spremeni srednjo uro. Kako pogosto bosta naključna operatorja ustvarila nekaj, kar sploh ni sestavljeno iz veljavnih blokov?
+2. Velikost prostora. Koliko vrednosti lahko zavzame vsak gen in koliko je genov? Primerjaj to s tem, koliko odločitev dejansko moraš sprejeti, saj je predavanj samo 10.
+3. Praktična malenkost: PyGAD geni so števila, ne stringi. To je rešljivo z indeksi v seznam možnosti, vendar to upoštevaj.
+
+Moje vprašanje zate: kaj, če razmerje obrneš? Zdaj je gen ura v učilnici in vrednost je kaj tam poteka. Kaj se zgodi, če je izhodišče predavanje in geni opisujejo, kje, kdaj in s kom poteka? Kateri pogoji postanejo potem zastonj in katere izgubiš, ki jih tvoj predlog zdaj daje po konstrukciji?
+
+Če misliš, da se problem z identiteto da rešiti znotraj tvoje reprezentacije, mi povej kako. Potem ga preizkusiva.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+če je fiksno predavanje imamo nato zastonj definirano, da so v pravi obliki in pravi frekvenci, morava pa kodirati kdaj se izvaja, kje in kdo.
+
+[AI]
+Točno. Identiteta, dolžina in število predavanj so zdaj fiksni in zagotovljeni. Odprta so samo še tri vprašanja na predavanje: kdaj, kje in kdo.
+
+Naslednji korak je, kako to spraviti v PyGAD-ov vektor števil. Skozi grem po vrsti.
+
+1. Kdo (učitelj). Vsak gen ima lahko v gene_space svoj seznam dovoljenih vrednosti. Kaj to pomeni za pogoj "učitelj mora znati predmet"? Ga mora fitness sploh še preverjati?
+
+2. Kje in kdaj. Tu je past. Recimo, da imaš ločena gena za učilnico in začetno uro. Kaj se zgodi s 3-urnim predavanjem, ki dobi P1 in začetek ob 8h? Kaj pa ob 14h? Dovoljene začetne ure so torej odvisne od tega, katera je učilnica, ki pa je v drugem genu. gene_space ne zna izraziti odvisnosti med dvema genoma.
+
+Imaš dve možnosti:
+- Ta pogoj prepustiš fitness funkciji (kazen).
+- Najdeš kodiranje, kjer te odvisnosti ni. Namig: ali morata "kje" in "kdaj" res biti dva gena?
+
+Premisli, kaj ima katera možnost za posledico pri mutaciji in crossoverju, ne samo pri fitnessu.
+
+3. Kaj ostane za fitness? Ko se odločiš pri 1 in 2, naštej trde pogoje iz navodil, ki niso zagotovljeni po konstrukciji. Te bo morala kaznovati fitness funkcija. Po mojem bi moral priti do dveh ali treh. Pri vsakem se vprašaj, kako ga boš meril: samo da/ne ali kot število kršitev (npr. število prekrivajočih se ur)? Za GA to ni vseeno. Zakaj?
+
+Povej, za kaj se odločiš pri točki 2. Potem greva na fitness.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+kdo je preprosto rešeno, ker omejiva na fiksne vrednosti, kjer vsakemu profesorju dodeliva številko, za določen del gena so dovoljena le določena števila. kje in kdaj ne rabita biti dva različna gena lahko sta združena, saj učilnici priredimo števila, začetnemu času število in nato lahko izračunamo unikatni int kot praštevilo1 na številko učilnice krat praštevilo2 na številko začetka predavanja. konec avtomatsko vemo prek tega za katero predavanje gre.
+
+[AI]
+"Kdo" je rešen pravilno. Pogoj "učitelj zna predmet" je zdaj zagotovljen po konstrukciji.
+
+Pri "kje + kdaj" je združitev v en gen prava odločitev. Kodiranje s praštevili pa je po mojem nepotreben ovinek, in tu ti bom ugovarjal.
+
+Kaj praštevila naredijo: po osnovnem izreku aritmetike je 2^učilnica · 3^začetek res injektivno, torej deluje. Ampak zakaj sva sploh združila gena? Zato, da lahko gene_space za to predavanje vsebuje samo veljavne pare (učilnica, začetek). Poglej, kaj točno je ta seznam. Za 3-urno predavanje bi bil P2 z začetkom ob 14h neveljaven, ker se P2 zapre ob 16h.
+
+Zdaj pa vprašanji:
+
+1. Ali tvoje kodiranje te neveljavne pare izloči? Rekel si, da "konec vemo". Vendar vedeti ni isto kot prepovedati. Če gene_space vsebuje vse kombinacije 2^r·3^s, je razpoložljivost učilnice spet naloga fitnessa.
+2. Če pa veljavne pare že naštevaš, kaj ti potem praštevila sploh dajo? Ali mora vrednost gena sama nositi informacijo, ali je lahko samo kazalec na nekaj? Kaj je enostavnejše za dekodiranje, izpis in razhroščevanje? Kaj je bolj berljivo v poročilu, kjer moraš na predstavitvi svoje odločitve utemeljiti?
+
+Manjša opomba: 2^3·3^15 je okoli 115 milijonov. To samo po sebi ni napaka, vendar vrednosti niso zaporedne. Pri nekaterih PyGAD nastavitvah mutacije, ki k genu prišteje naključno število, bi dobil večinoma neveljavne vrednosti. Če je gene_space seznam, PyGAD vzorči iz seznama, tako da je to manjša skrb. Vseeno preveri, kateri tip mutacije boš uporabljal.
+
+Če premisliš točko 2 in pristaneš na enostavnejši različici, imaš reprezentacijo končano. Takrat mi povej, kateri trdi pogoji iz navodil po tvojem še ostanejo za fitness funkcijo in kako bi meril vsakega.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+potem pa lahko narediva seznam kartezično kdaj in kje, to nato oštevilčiva od 1 naprej in to zakodirava v gen
+
+[AI]
+Ja, to je to, z enim pogojem. Ne sme biti celoten kartezični produkt, ampak samo tisti pari, kjer predavanje tudi konča, preden se učilnica zapre. To pomeni, da je seznam odvisen od trajanja predavanja. Šele s tem filtrom je razpoložljivost učilnice zagotovljena po konstrukciji. Brez njega si samo preimenoval problem.
+
+Majhna praktična stvar: zakaj šteti od 1? Če gen služi kot indeks v Python seznam, je 0 naravnejša izbira. Sicer moraš povsod odštevati 1, in tam se rade pojavijo napake za ena.
+
+Premisli še to: ali rabiš ločen seznam za vsako predavanje ali samo za vsako različno trajanje? Pri večjih vhodih v Task 4 to ni čisto vseeno.
+
+Pregled, kaj imava zdaj zagotovljeno po konstrukciji:
+- vsako predavanje je prisotno, v pravi dolžini in pravem številu (fiksen indeks gena),
+- učitelj zna predmet (gene_space za gen učitelja),
+- predavanje je v učilnici v času, ko je odprta (filtriran seznam parov).
+
+Zdaj se vrni na seznam trdih pogojev v navodilih. Kaj od tega še ni pokrito? Za vsako takšno stvar mi povej:
+1. kako bi zaznal kršitev iz dekodiranega kromosoma,
+2. ali bi kaznoval binarno (kršeno ali ne) ali po količini (npr. število prekrivajočih se ur ali parov). Zakaj je ta izbira za GA pomembna? Namig: pomisli, kako GA loči med dvema slabima rešitvama.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+potrebno je zagotoviti še da se ne prekriva, fitnes v tem primeru bi torej bil število ur, ki so narejene pravilno, torej da se ne prekrivajo
+
+[AI]
+Prav, ampak tu sta skrita dva različna pogoja. Ločiva ju, ker se zaznavata različno:
+
+- prekrivanje v učilnici: dve predavanji v isti učilnici v isti uri,
+- prekrivanje učitelja: isti učitelj v isti uri, lahko v različnih učilnicah.
+
+Kako bi zaznal enega in kako drugega? Ali gre z isto funkcijo, če ji podaš drug "ključ"?
+
+Pri meri "število pravilno izvedenih ur" pa mi definiraj, kaj točno je pravilna ura. Vzemi tale primer:
+
+    Predavanje A (P1, 10–13, Anna) in predavanje B (P1, 12–14, Brian).
+
+Prekrivata se ob 12h. Koliko pravilnih ur je tu? So pravilne ure od A 10 in 11, od B pa 13? Ali je cela A nepravilna? Ali samo ena od obeh ur ob 12h? Vse te definicije so smiselne, vendar dajo različne številke. Ko se odločiš, preveri: ali je to enako kot preprosto šteti konflikte (pare ur, ki trčijo) in fitness izraziti z njimi? Kaj je lažje implementirati in kaj je bolj gladko za GA?
+
+Tvoj pristop ima eno prednost, in sicer znan maksimum. Skupno število ur je fiksno, torej veš, kdaj je urnik popoln. Kako bi to izkoristil? Poglej si PyGAD parameter stop_criteria.
+
+Še zadnje vprašanje: ali bi oba tipa konflikta kaznoval enako, ali je kateri hujši?
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+za vsako predavanje so pravilne ure tiste, ki se nikakor ne prekrivajo, kjer se dobi v bistvu dve točki eno da se ne prekriva s kako učilnico in drugo da se ne prekriva profesor. stop criteria je ko je enako 2 * število ur
+
+[AI]
+Definicija drži. Na mojem primeru A (P1, 10–13) in B (P1, 12–14) bi to dalo 3 od 5 "učilniških" točk. Mera je zvezna in GA lahko loči "skoraj dobro" od "zelo slabo", kar je točno to, kar želiš. Oba tipa konflikta s tem obtežiš enako, in za Task 1 je to povsem zagovorljivo.
+
+Pri stop_criteria pa se ustavi in pomisli: kaj, če popoln urnik sploh ne obstaja? Pri teh podatkih bi se sicer moral iziti, kar lahko preveriš sam s tistim izračunom kapacitet od prej. V Tasku 4 pa boš namenoma delal vhode, kjer GA odpove. Kaj takrat ustavi algoritem in kaj boš izpisal?
+
+Še eno vprašanje za preverbo, ali reprezentacija drži, preden začneš kodirati. Privzeti crossover v PyGAD lahko kromosom prereže med genom za termin in genom za učitelja istega predavanja. Je to težava ali ne? Zakaj?
+
+Zasnova je s tem pokrita:
+- kromosom: 2 gena na predavanje, (termin, učitelj),
+- termin je indeks v vnaprej filtriran seznam veljavnih (učilnica, začetek) za dano trajanje,
+- učitelj ima per-gen gene_space samo z usposobljenimi učitelji,
+- fitness: na vsako uro predavanja 1 točka brez konflikta v učilnici in 1 točka brez konflikta pri učitelju, max = 2 · skupne ure.
+
+Predlog za naprej: začni s parsanjem datotek in gradnjo gene_space. Pazi, da so v Classes.txt seznami v oglatih oklepajih. V Preferences.txt so "pametni" narekovaji (“ ”), ki jih json ne bo požrl, vendar to rabiš šele v Tasku 3. Pri PyGAD preveri v dokumentaciji svoje verzije podpis fitness funkcije, ker se je med verzijami spremenil, in nastavi gene_type.
+
+Ko boš imel kodo, mi jo pokaži. Lahko pa najprej odgovoriš na vprašanje o crossoverju.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+ali pa ustavi algoritem recimo 7 iteracij brez izboljšanja, s tem da bi to lahko zaznali že na začetku, preden sploh poženemo genetski algoritem. je pa problematično če gen prereže kar tako, ker lahko pride do neveljavne kombinacije
+
+[AI]
+Ustavljanje. PyGAD to že podpira: stop_criteria sprejme seznam, npr. reach_X in saturate_N skupaj. Ideja je dobra. 7 generacij brez izboljšanja pa je po mojem občutno premalo. GA pogosto dolgo stoji na platoju in potem nenadoma skoči, ko mutacija ali crossover najde pravo kombinacijo. S 7 bi ga pogosto ubil prezgodaj. Kako bi prišel do razumne vrednosti, namesto da jo ugibaš? To je mimogrede že eksperiment za Task 4.
+
+Zaznava vnaprej: tu bodi previden. Kateri test bi naredil pred zagonom? Izračun "potrebne ure ≤ ure učilnic" in podobni so nujni pogoji. Če padejo, rešitve zagotovo ni. Če pa uspejo, to še ne pomeni, da rešitev obstaja. Razmisli o primeru, kjer je ur dovolj, vendar se ne dajo zložiti, ker so predavanja predolga za luknje v učilnicah. Splošno preverjanje izvedljivosti je težak kombinatorični problem. Če bi ga znal hitro rešiti, GA ne bi rabil. Predhodni test je torej koristen kot hitri filter, ne kot dokaz.
+
+Crossover: tu se ne strinjam. Ugovarjam, ker mislim, da je tvoja reprezentacija boljša, kot ji priznavaš.
+
+Poskusi sestaviti konkreten protiprimer: dva veljavna starša, rez med genom za termin in genom za učitelja istega predavanja, potomec pa ima neveljavno kombinacijo. Pri tem razmisli:
+- Od česa je odvisno, kateri učitelji so dovoljeni na genu za učitelja? Od termina ali od nečesa drugega?
+- Od česa je odvisno, kateri termini so dovoljeni na genu za termin?
+- PyGAD reže med geni, nikoli znotraj gena. Kaj to pomeni za vrednost vsakega posameznega gena v potomcu?
+
+Če najdeš protiprimer, imaš prav in ga rešiva. Če ga ne, si s tem odkril eno najmočnejših lastnosti svoje zasnove. Splača se jo omeniti na predstavitvi.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+potem pa je res dobro zasnovano to, ker reže med genoma ne more priti do neveljavne konfiguracije, ker so istoležna predavanja vedno en pod drugim
+
+[AI]
+Da, to je bistvo. Še natančneje: domena vsakega gena je odvisna samo od njegovega položaja, torej od tega, katero predavanje predstavlja. Od vrednosti drugih genov ni odvisna. Ker sta oba starša poravnana enako, mora vsak gen v potomcu priti z istega položaja pri enem od staršev, zato je vedno v svoji domeni. To velja za vsak rez, ne samo za rez med terminom in učiteljem. Enak argument velja tudi za mutacijo, če vzorči iz gene_space.
+
+Ne pomešaj pa dveh pojmov. Crossover ne more ustvariti neveljavnega zapisa, lahko pa ustvari konflikte, na primer da dva dobra urnika skupaj dasta prekrivanje. To je pravilno in je delo fitness funkcije. Reprezentacija skrbi za strukturo, fitness pa za trke. Ta delitev je dober stavek za poročilo.
+
+Zasnova za Task 1 je s tem zaključena. Ostane še implementacija:
+1. parsanje treh datotek,
+2. gradnja seznamov veljavnih terminov po trajanju in gene_space,
+3. dekodiranje kromosoma v urnik, ki ga rabita fitness in izpis,
+4. fitness,
+5. izpis urnika (navodila to izrecno zahtevajo),
+6. zagon PyGAD.
+
+Predlagam, da dekodiranje (3) napišeš kot ločeno funkcijo, ki jo uporabljata fitness in izpis. Tako ju lahko testiraš neodvisno. Recimo, da ročno sestaviš kromosom z znanim konfliktom in preveriš, ali fitness vrne pričakovano številko.
+
+Začni s kodo in mi jo pokaži, ko boš zataknil ali ko boš imel prvo verzijo.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+napiši mi sedaj celotno idejo na kup
+
+[AI]
+Task 1: zasnova
+
+Problem: imava 10 predavanj (Programming 4×, Math 2×, Algorithms 2×, OS 2×) in vsakemu morava določiti učilnico, začetni čas in učitelja, tako da veljajo trdi pogoji.
+
+1. Reprezentacija
+- Izhodišče je predavanje, ne časovni slot. Vsako predavanje iz Classes.txt ima fiksno mesto v kromosomu. Identiteta, trajanje in število predavanj so s tem zagotovljeni po konstrukciji.
+- Dva gena na predavanje: [termin, učitelj], torej je kromosom dolžine 2 × število predavanj.
+- Gen za termin: "kje" in "kdaj" sta združena v en gen. Za vsako trajanje vnaprej zgradiva seznam veljavnih parov (učilnica, začetek), filtriran tako, da se predavanje konča, preden se učilnica zapre. Gen je indeks v ta seznam, od 0 naprej.
+- Gen za učitelja: indeks učitelja. gene_space za ta gen vsebuje samo učitelje, ki znajo predmet.
+
+Zavrnjena alternativa: kromosom kot seznam vseh ur po učilnicah z oznako "predmet–učitelj". Pogoja o razpoložljivosti in o eni stvari v učilnici naenkrat bi bila sicer zagotovljena, vendar se izgubi identiteta predavanj. Iz zaporedja ur se ne da razbrati, ali gre za 2+3 ali 3+2 ali 2+2+1. Operatorji bi tudi nenehno razbijali bloke ur, prostor pa je bistveno večji.
+
+2. Kaj je zagotovljeno po konstrukciji
+- vsako predavanje je prisotno, v pravi dolžini in v pravem številu,
+- učitelj zna predmet,
+- predavanje je v času, ko je učilnica odprta.
+
+3. Fitness (pokriva samo, česar reprezentacija ne)
+- Za vsako uro vsakega predavanja:
+  - +1, če se v tisti uri v isti učilnici ne izvaja nič drugega,
+  - +1, če isti učitelj v tisti uri ne uči nič drugega.
+- Maksimum je 2 · skupno število ur (tukaj 2 · 22 = 44).
+- Mera je zvezna, zato GA loči "skoraj dobro" od "zelo slabo". Oba tipa konflikta sta obtežena enako.
+
+4. Operatorji
+- Domena vsakega gena je odvisna samo od njegovega položaja, ne od drugih genov. Zato privzeti crossover (reže med geni) in mutacija iz gene_space nikoli ne ustvarita neveljavnega zapisa.
+- Lahko pa ustvarita konflikte, ki jih kaznuje fitness. Reprezentacija skrbi za strukturo, fitness za trke.
+
+5. Ustavitveni kriterij
+- reach_44: popoln urnik je najden.
+- saturate_N: N generacij brez izboljšanja, kot varovalo za primere, ko popoln urnik ne obstaja. Odprto: N mora biti precej večji od 7. Pravo vrednost določi eksperimentalno (Task 4).
+- Po želji predhodni test izvedljivosti (npr. potrebne ure ≤ razpoložljive ure). Pomni, da je to samo nujni pogoj: če pade, rešitve ni, če uspe, to ne dokazuje, da rešitev obstaja.
+
+6. Implementacija po korakih
+1. Parsanje Classes, Classrooms in Teachers.
+2. Seznami veljavnih terminov po trajanju in gene_space.
+3. Funkcija za dekodiranje kromosoma v urnik, ki jo rabita fitness in izpis.
+4. Fitness funkcija. Preveri podpis za svojo verzijo PyGAD in nastavi gene_type=int.
+5. Izpis urnika.
+6. Zagon PyGAD.
+
+Test: ročno sestavi kromosom z znanim konfliktom in preveri, ali fitness vrne pričakovano številko.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+napiši mi sedaj celotno transkripcijo pogovora kot txt datoteko
+
+[AI]
+(zapiše to datoteko)

@@ -1,0 +1,172 @@
+Transkripcija pogovora z AI (Claude) – Seminarska naloga 1, Task 2
+Datum: 28. 10. 2026
+==================================================================
+
+[UPORABNIK]
+sedaj sem končal z prvo, preglej kodo, mislim da je to to. greva na drugo in ugotavljati kako bi jo izboljšala
+
+[AI]
+(prebere task1.py in ga trikrat požene s PyGAD 3.9.2)
+
+Task 1 je v redu. task1.py sem trikrat pognal pri sebi s PyGAD 3.9.2, isto verzijo kot ti. Vsakič je našel popoln urnik 44/44, in sicer po 143, 298 in 299 generacijah. Zadnji urnik sem preveril tudi ročno: nobena učilnica in noben učitelj nimata prekrivanja. Napaka z return je odpravljena.
+
+Tri drobnosti, preden zaključiš Task 1. Nobena ni napaka, vse pa bodo pomembne v Tasku 2:
+- best_solution() v on_generation še vedno vsako generacijo na novo izračuna fitness celotne populacije. Ko boš meril čas posameznih korakov, ti bo to pokvarilo meritve.
+- Ni random_seed. Že pri treh zagonih si videl razpon od 143 do 299 generacij. Kako boš ob takšnem šumu dokazal, da je izboljšava res boljša, in ne da si imel srečo?
+- Izpis je po vrstnem redu predavanj. Za branje (in za predstavitev) bi bil bolj pregleden izpis po učilnicah in času. To je kozmetika, po želji.
+
+Task 2
+
+Navodila ponujajo dve smeri: boljšo začetno populacijo in svoja operatorja, crossover in mutacijo. Preden se lotiva katerekoli, odgovori na vprašanje 0: kaj pomeni "boljše"? Število generacij do 44, čas v sekundah, hitrost rasti fitnessa, delež zagonov, ki sploh dosežejo 44? Pri tako majhnem primeru, ki ga že osnovni GA reši v nekaj sto generacijah, bo razlika morda težko vidna. Kaj to pomeni za izbiro testnih podatkov?
+
+Za vsako smer ti dam nekaj vprašanj za razmislek:
+
+A) Začetna populacija (požrešno)
+- Kaj v tvoji reprezentaciji pomeni "požrešno"? Kako bi predavanja polagal eno za drugim?
+- Požrešni algoritem je deterministični. Če z njim narediš vseh 60 osebkov, kaj dobiš? Zakaj je to za GA slabo in kje lahko vneseš naključnost?
+- Če požrešni algoritem že sam najde 44, kaj je potem GA sploh naredil? Kako boš to pošteno predstavil?
+
+B) Mutacija
+- Kaj zdaj naredi mutation_type="random"? Izbere naključne gene in jim da naključno vrednost, tudi genom predavanj, ki so že brez konflikta. Ali je smiselno popravljati nekaj, kar ni pokvarjeno?
+- Kaj bi bila "pametnejša" mutacija? Kje je prava meja med pametno mutacijo in lokalnim iskanjem, ki izgubi raziskovanje?
+
+C) Crossover
+- Dokazala sva že, da single_point ne ustvari neveljavnega zapisa. Kaj pa je potem narobe z njim? Pomisli, ali vrstni red predavanj v kromosomu sploh kaj pomeni in kaj to pomeni za rez na eni točki.
+- Ali lahko pri izbiri, kateri starš da posamezno predavanje, upoštevaš, kako "dobro" je to predavanje pri vsakem od staršev?
+
+Predlagam, da začneva z A, ker je najbolj neodvisna od ostalega in jo je najlažje izmeriti. Lahko pa izbereš drugače. Najprej pa mi odgovori na vprašanje 0.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+A) začetno rešitev bi naredil tako, da bi lepo po vrsti razporejal predavanja po urniku dokler gre, ko to ne gre več pa jih preprosto naključno razporedim. B) primerno je potrebno nujno menjati gene, ki se prekrivajo, tiste, ki se ne pa recimo le z 20% verjetnosti
+
+[AI]
+Obe ideji sta dobra izhodišča. Najprej opomba: vprašanje 0 si preskočil. Za zdaj ga pustiva, vendar se vrneva, preden karkoli meriš, ker brez njega Taska 2 ne moreš oceniti.
+
+A) Požrešna začetna populacija
+
+Ideja drži, manjkata pa dve stvari:
+
+1. Raznolikost. Če "lepo po vrsti" vedno pomeni isti vrstni red in prvi prosti termin, je vseh 60 osebkov enakih do točke, kjer zmanjka prostora. GA s 60 kopijami istega osebka praktično nima česa križati. Kje v svojem postopku lahko vneseš naključnost, ne da bi izgubil požrešnost? Mesti sta vsaj dve.
+2. Kateri vrstni red? Pomisli na problem pakiranja v zaboje. Ali je vseeno, ali najprej polagaš 2-urna ali 3-urna predavanja? Kaj se ponavadi zgodi s tistimi, ki pridejo na vrsto zadnja?
+
+Še dve vprašanji:
+- Ko "gre", ali preverjaš oba konflikta, učilnico in učitelja? Kako izbereš učitelja?
+- Ali morajo biti vsi osebki požrešni, ali je smiselna mešanica, na primer del požrešnih in del naključnih? Zakaj?
+
+B) Mutacija
+
+Ta ideja mi je všeč. Usmeri mutacijo tja, kjer je problem. Vprašanja na podrobnosti:
+
+1. V kaj spremeniš konflikten gen? V naključno vrednost, ki lahko spet povzroči konflikt, ali v vrednost, za katero preveriš, da konflikt odpravi? Druga možnost je hitrejša, vendar zdrsne v lokalno iskanje. Kje je za tebe meja?
+2. Kateri od dveh genov? Če ima predavanje samo konflikt učitelja, ali res moraš premakniti termin? Tip konflikta ti pove, kateri gen spremeniti.
+3. Obe predavanji v konfliktu? Če A in B trčita, ali premakneš obe? Kaj se zgodi, če premakneš obe hkrati?
+4. 20 % za "zdrave" gene je po mojem precej. Pri 10 predavanjih bi pri vsakem potomcu v povprečju porušil približno dve dobri predavanji. Zakaj ravno 20? To bi moral biti parameter, ki ga v Tasku 4 preizkusiš na več vrednostih.
+
+Dve praktični opombi za implementacijo:
+- Mutacija mora vedeti, katera predavanja so v konfliktu, fitness pa trenutno vrne samo eno številko. Kako bi refaktoriral, da isto logiko zaznave uporabljata obe funkciji in je ne podvajaš?
+- Preveri v dokumentaciji, ali PyGAD pri lastni mutaciji še upošteva gene_space. Po mojem ga ne. To pomeni, da moraš sam paziti, da vrednost ostane v dovoljeni domeni, sicer decode_chromosome pade z IndexError.
+
+Odgovori na A1 in B1, ker sta to ključni odločitvi. Ostalo se bo razjasnilo ob kodiranju.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+Za začetek naključnost vnesemo z mešanjem vrstnega reda dolgih predavanj in naključno izbiro med prostimi termini, pri čemer preverjamo oba trka in uporabimo mešanico osebkov za raznolikost. Pri mutaciji ciljno popravljamo le konfliktni gen enega predavanja brez povzročanja verižnih reakcij, 20-odstotno stopnjo pa je treba v Tasku 4 precej znižati, saj je preveč uničujoča.
+
+[AI]
+Obe odločitvi sta dobri. Mešanje znotraj skupin enakega trajanja, z dolgimi predavanji najprej, ohrani prednost požrešnega vrstnega reda in vseeno da raznolikost. Razmerje med požrešnimi in naključnimi osebki pa naj bo parameter, ne trdo zapisana številka. To je še en kandidat za primerjavo v Tasku 4.
+
+Pri mutaciji imam dva ugovora:
+
+1. Kaj, če vrednost brez konflikta ne obstaja? Na teh podatkih bo skoraj vedno obstajala. Na tesnih podatkih iz Taska 4 pa ne nujno. Kaj takrat naredi mutacija? Potrebuješ rezervno pot, ker sicer mutacija tiho ne naredi ničesar.
+2. Popravljanje samo v vrednosti brez konflikta je lokalno iskanje. Predstavljaj si stanje, kjer ostane en konflikt in vsak posamezen premik predavanja povzroči nov konflikt. Rešitev bi bila, recimo, da dve predavanji zamenjata mesti. Ali tvoja mutacija iz takšnega stanja sploh lahko pobegne? Zato tistih "zdravih" genov ne smeš povsem zamrzniti. Nizka verjetnost naključne spremembe je točno tisto, kar ohranja raziskovanje.
+
+Tudi trditev, da je 20 % preveč, je za zdaj samo hipoteza. Morda se izkaže, da je pri težkih vhodih ravno potrebna. Zapiši si jo kot vprašanje za Task 4, ne kot zaključek.
+
+Za implementacijo potrebuješ iz PyGAD:
+- initial_population=: seznam kromosomov, tvoja požrešna mešanica. Pazi, da je število osebkov enako sol_per_pop, oziroma preveri, kaj PyGAD naredi, če podaš oba parametra.
+- mutation_type=tvoja_funkcija s podpisom (offspring, ga_instance), ki vrne spremenjen offspring.
+
+Predlog vrstnega reda:
+1. Refaktoriraj zaznavanje konfliktov v funkcijo, ki vrne konflikte po predavanjih. Fitness jo samo sešteje.
+2. Implementiraj A in jo preizkusi samostojno: koliko fitnessa imajo začetni osebki v primerjavi z naključnimi?
+3. Implementiraj B.
+4. Nato vprašanje 0 in merjenje s callbacki.
+
+Crossover (C) sva za zdaj preskočila. Navodila ga ne zahtevajo nujno ("possible ways include"), vendar ima tvoja reprezentacija tam zanimivo izboljšavo. Vrneva se k njemu, če bo čas.
+
+Pokaži mi kodo, ko bosta A ali B napisana.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+v task 2 je koda
+
+[AI]
+(prebere task2.py, ga 5-krat požene, v izvorni kodi PyGAD preveri, kdaj se izračuna last_generation_fitness, in ločeno izmeri fitness 60 požrešnih in 60 naključnih začetnih osebkov)
+
+Kodo sem pognal pri sebi. Na kratko: A deluje, B še ni implementiran. Poleg tega se je zgodilo točno to, na kar sem opozarjal pri vprašanju 0.
+
+Kaj sem naredil:
+- task2.py sem pognal 5-krat. Vsakič je dosegel 44/44 v 1. generaciji.
+- Ločeno sem izmeril začetne osebke, po 60 vsake vrste. Požrešni imajo v povprečju fitness 40,9 in 6 od 60 jih je že popolnih. Naključni imajo v povprečju 19,9, najboljši pa 30.
+- V izvorni kodi PyGAD sem preveril, da je last_generation_fitness v on_generation že fitness nove populacije. Popravek tam je torej pravilen.
+
+Ugotovitve
+
+1. Mutacija (B) ni ciljana. Poglej obe veji v custom_mutation, vrstici 222–225. Kaj je razlika med njima? Trenutno je to isto kot mutation_type="random" z 15 %.
+
+Vzrok sega korak nazaj: get_conflicts vrne eno številko za ves urnik. Mutacija pa mora vedeti, katero predavanje je v konfliktu in katerega tipa. Refaktor je torej narejen samo na pol. Kakšno strukturo naj vrne get_conflicts, da jo fitness lahko sešteje, mutacija pa uporabi po predavanjih?
+
+2. A na teh podatkih reši problem sam. GA ni naredil ničesar, ker je popolni urnik obstajal že v začetni populaciji. To ni napaka v kodi, je pa problem za poročilo. Na teh podatkih ne moreš pokazati, da izboljšave pomagajo GA-ju. Pokažeš lahko samo, da je požrešni algoritem dober. Zato mi zdaj odgovori na vprašanje 0:
+- Na katerih podatkih boš primerjal? Rabil boš vsaj en vhod, kjer požrešni algoritem ne najde popolne rešitve.
+- Kako boš ločil prispevek A in B? Pomisli na kombinacije: osnova, samo A, samo B, A + B.
+
+3. Manjše stvari:
+- gene_space si odstranil iz pygad.GA. Zdaj deluje, ker ga sam upoštevaš v začetni populaciji in v mutaciji. Če pa boš za primerjavo "samo A" vklopil vgrajeno mutacijo, bo PyGAD generiral poljubna cela števila in decode_chromosome bo padel.
+- Požrešni algoritem za vsakega kandidata pokliče get_conflicts na celotnem dosedanjem urniku. Ali res moraš preveriti vse pare, ali je dovolj preveriti samo novo predavanje proti že postavljenim? Na teh podatkih je vseeno, na velikih iz Taska 4 pa ne.
+- Uporabljaš Pythonov modul random, random_seed v PyGAD pa nanj ne vpliva. Za ponovljive primerjave moraš nastaviti seme obema.
+
+Predlagam, da najprej popraviš get_conflicts in mutacijo, potem pa se lotiva testnih podatkov in merjenja.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+kako kaže sedaj s popravki
+
+[AI]
+(prebere posodobljeni task2.py, ga požene in naredi diagnostični test: naključna začetna populacija, 10 semen, do 2000 generacij, vgrajena random mutacija proti custom_mutation)
+
+Popravki so v pravi smeri. get_lecture_conflicts zdaj vrne konflikte po predavanjih in po tipu, mutacija cilja pravi gen, evaluate_new_lecture preverja samo novo predavanje, gene_space in semena so nastavljeni. Ostale so tri vsebinske stvari, ena pa je zelo zanimiva.
+
+Kaj sem naredil: task2.py sem pognal tak, kot je. Spet je dosegel 44 v 1. generaciji, ker požrešna populacija problem že reši. Da bi videl učinek samo mutacije B, sem naredil hiter diagnostični test: naključna začetna populacija, 10 semen, do 2000 generacij. Primerjal sem vgrajeno random mutacijo s tvojo custom_mutation. Rezultat je število generacij do 44:
+
+    random: [288, 64, 532, 130, 186, 21, 382, 242, 358, 32]   → 10/10 doseže 44
+    custom: [5, 2000, 9, 10, 15, 1598, 732, 2000, 13, 8]       → 8/10 doseže 44
+
+Tvoja mutacija je bimodalna. V večini primerov je za velikostni razred hitrejša (5–15 generacij), včasih pa se zatakne za stotine generacij ali sploh ne konča. To ni slab rezultat, ampak odličen material za poročilo, če znaš razložiti, zakaj se to zgodi.
+
+Zakaj se zatakne? Ne teoretiziraj. Dodaj diagnostiko: ko fitness N generacij stoji, izpiši najboljši urnik in njegove lect_confs. Pri tem razmisli o treh stvareh v kodi:
+
+1. Zastarel seznam konfliktov. lect_confs izračunaš enkrat, pred mutacijo. Recimo, da A in B trčita in v zanki premakneš A. Kaj se zgodi, ko zanka pride do B? To je točno vprašanje "obe predavanji v konfliktu?" od prej.
+2. Mutacija v naključno vrednost. Rekel si, da boš konfliktni gen popravil brez verižnih reakcij. Koda pa izbere random.choice(gene_space[...]), kar lahko ustvari nov konflikt. Je to zavestna odločitev ali razlika med idejo in kodo?
+3. Raziskovanje. Zdravo predavanje se spremeni s ~3 % verjetnosti. Ko se populacija zbere okoli enega skoraj popolnega urnika, ali je to dovolj, da pobegne? Spomni se primera, kjer bi morali dve predavanji zamenjati mesti.
+
+Za vsako od teh lahko napišeš varianto in jo primerjaš. Ta primerjava je že vsebina Taska 2 in 4.
+
+Manjše stvari:
+- Konfliktno predavanje se mutira samo s 15 % verjetnosti. Prej si rekel "nujno menjati". Kaj je zdaj prav?
+- Na koncu task2.py ni več izpisa končnega urnika.
+- Mutacijski parametri (0,15 in 0,2) so trdo zapisani v funkciji. Za Task 4 jih boš želel spreminjati od zunaj.
+
+Najprej dodaj diagnostiko za zatikanje in mi povej, kaj vidiš.
+
+------------------------------------------------------------------
+
+[UPORABNIK]
+tej kodi v task2 dodaj te globalne parametre na začetek in izpis urnika, potem napiši transkripcijo najinega pogovora in jo shrani v mapo, kjer se ta transkripcija začne od mojega sporočila: "sedaj sem končal z prvo, preglej kodo, mislim da je to to. greva na drugo in ugotavljati kako bi jo izboljšala" naprej
+
+[AI]
+(v task2.py doda na začetek globalne parametre GREEDY_RATIO = 0.7, MUTATION_RATE = 0.15 in HEALTHY_MUTATION_FACTOR = 0.2 ter jih uporabi namesto trdo zapisanih vrednosti v generate_greedy_chromosome, pri gradnji initial_population in v custom_mutation; na konec doda izpis končnega fitnessa in urnika v enaki obliki kot v task1.py; kodo požene in preveri, da deluje; zapiše to datoteko)
