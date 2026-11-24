@@ -6,9 +6,9 @@ RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
 
 # Globalni parametri GA
-GREEDY_RATIO = 0.7             # delež požrešnih osebkov v začetni populaciji
-MUTATION_RATE = 0.15           # verjetnost mutacije konfliktnega predavanja
-HEALTHY_MUTATION_FACTOR = 0.2  # zdrava predavanja se mutirajo z MUTATION_RATE * HEALTHY_MUTATION_FACTOR
+GREEDY_RATIO = 0.2             # delež požrešnih osebkov v začetni populaciji
+MUTATION_RATE = 0.8           # verjetnost mutacije konfliktnega predavanja
+HEALTHY_MUTATION_FACTOR = 0.7  # zdrava predavanja se mutirajo z MUTATION_RATE * HEALTHY_MUTATION_FACTOR
 
 ASSETS_PATH = 'assets/large/'
 

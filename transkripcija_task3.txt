@@ -1,0 +1,232 @@
+TRANSKRIPCIJA POGOVORA – TASK 3
+
+======================================================================
+UPORABNIK
+======================================================================
+
+Preberi si nalogo, nato se bova o njej pogovorila, ne piši kode. During this task, you will implement two additional constraints on the schedul
+ing algorithm. Unlike the constraints in Task 1, these are soft constraints: the
+schedule does not need to satisfy them 100% to be valid, but satisfying them
+should increase the fitness score. The additional constraints are:
+• Teacher preferences. Your scheduling program should now consider
+an additional file preferences.txt, which describes when teachers would
+like to teach their classes. Each line in the file contains the teacher’s name
+followed by a dictionary of preferences in the form:
+Miha {”likes” : [start hour,end hour],”dislikes” : [start hour,end hour]}.
+Your algorithm should attempt to follow these preferences by placing each
+teacher’s lectures during hours they like and outside the hours they dislike.
+• Teacher balance. The schedule should balance the teaching hours be
+tween the teachers so that everyone teaches (approximately) the same
+number of hours. This may not always be possible, but the algorithm should
+balance the hours as much as possible.
+Tackle these two constraints in two ways:
+• Using a single fitness function that takes into account both constraints.
+• Using multi objective optimization. PyGAD supports this with a few
+small tweaks to the algorithm described here:
+https://pygad.readthedocs.io/en/latest/multi_objective.html.
+As in Task 2, evaluate the approach and present the results as described in
+Task 4.
+
+======================================================================
+ASISTENT
+======================================================================
+
+Prebral sem nalogo. Razumem, kaj je treba narediti. Kode za zdaj ne bom pisal.
+
+Naloga zahteva nadgradnjo obstoječega algoritma za izdelavo urnikov z **dvema dodatnima mehkima omejitvama (soft constraints)**.
+
+### 1. Preference učiteljev (Teacher preferences)
+
+Dodati je treba datoteko `preferences.txt`, v kateri je za vsakega učitelja določeno:
+
+- `likes`: časovni interval, v katerem učitelj želi poučevati.
+- `dislikes`: časovni interval, v katerem učitelj ne želi poučevati.
+
+Primer iz naloge:
+
+`Miha {"likes": [start hour, end hour], "dislikes": [start hour, end hour]}`
+
+Algoritem naj poskuša razporediti učiteljeve ure v njemu ustreznejše termine in se izogibati terminom, ki jih ne mara.
+
+### 2. Uravnoteženost obremenitve učiteljev (Teacher balance)
+
+Algoritem naj poskuša doseči, da imajo vsi učitelji približno enako število pedagoških ur.
+
+Popolna enakost ni nujna, saj zaradi različnih predmetov, trajanj predavanj in razpoložljivosti učiteljev morda ni izvedljiva. Pomembno je, da algoritem čim bolj zmanjša razlike v obremenitvi.
+
+### 3. Dva načina implementacije
+
+Obe novi omejitvi moramo implementirati na dva različna načina:
+
+**Prvi pristop: Single fitness function**
+
+Obe omejitvi vključimo v eno funkcijo fitness. Ta mora upoštevati:
+- konflikte učilnic in učiteljev;
+- zadovoljstvo učiteljev z razporejenimi termini;
+- uravnoteženost števila pedagoških ur.
+
+Vse skupaj vpliva na eno skupno oceno urnika.
+
+**Drugi pristop: Multi-objective optimization**
+
+Namesto ene skupne ocene uporabimo več ciljev optimizacije. PyGAD omogoča večciljno optimizacijo, pri kateri se posamezni cilji ocenjujejo ločeno.
+
+Za ta pristop moramo prilagoditi obstoječi algoritem skladno z dokumentacijo PyGAD, ki jo navaja naloga.
+
+### 4. Evalvacija rezultatov
+
+Na koncu moramo oba pristopa ovrednotiti in predstaviti rezultate po navodilih iz Task 4.
+
+---
+
+**Pomembno za najino nadaljnjo razpravo:** ne gre samo za dodajanje dveh novih pogojev v obstoječo funkcijo fitness. Naloga zahteva primerjavo dveh različnih pristopov optimizacije, ki upoštevata iste dodatne omejitve.
+
+Osnovni algoritem za razporejanje predavanj ostaja izhodišče, ki ga bova nadgradila.
+
+======================================================================
+UPORABNIK
+======================================================================
+
+Piši krajše odgovore. Ali bi bila dobra ideja, da trenutni fitness pomnožimo s 100 za večje omejitve, te šibkejše omejitve pri tretji nalogi pa bi bila manjša števila, ki jih odštevamo od fitnessa
+
+======================================================================
+ASISTENT
+======================================================================
+
+Da, to je dobra ideja. Predlagam pristop z **uteževanjem (weighted fitness)**, pri katerem imajo osnovne omejitve bistveno večjo težo kot novi mehki omejitvi.
+
+Na primer:
+
+Fitness = 100 × Fitness_osnovni − Penalty_preferences − Penalty_balance
+
+Kjer:
+
+- **Osnovni fitness × 100:** zagotavlja, da so konflikti učiteljev in učilnic veliko bolj nezaželeni.
+- **Preference penalty:** manjše kazenske točke za razporejanje učiteljev v nezaželene termine oziroma nagrajevanje želenih terminov.
+- **Balance penalty:** kazenske točke glede na razlike v številu pedagoških ur med učitelji.
+
+**Pomembna podrobnost:** uteži moramo izbrati tako, da izboljšanje mehkih omejitev ne more odtehtati enega dodatnega konflikta iz osnovnih omejitev.
+
+Zato bi najprej določil maksimalno možno kazen za obe mehki omejitvi in na tej podlagi izbral uteži.
+
+Tak pristop je smiseln za prvo različico naloge. Pri drugi različici pa bomo iste cilje obravnavali ločeno z multi-objective optimization.
+
+======================================================================
+UPORABNIK
+======================================================================
+
+Ok, kaj pa za tisto multi objective optimization? Bi naredil ločeni fitness funkciji za močne in šibke omejitve, pri čemer je dominantna tista z močnimi, ob enaki vrednosti pa se gleda fitness šibkejših?
+
+======================================================================
+ASISTENT
+======================================================================
+
+Ideja z dvema ločenima fitness funkcijama je pravilna, vendar je ena pomembna razlika.
+
+V **PyGAD Multi-objective optimization (NSGA-II)** se cilji ne obravnavajo po prioriteti. Algoritem jih obravnava kot enakovredne cilje in išče kompromis med njimi.
+
+Predlagal bi:
+
+**Fitness 1 – Strong constraints**
+- Konflikti učilnic.
+- Konflikti učiteljev.
+- Cilj: čim višja ocena oziroma nič konfliktov.
+
+**Fitness 2 – Soft constraints**
+- Upoštevanje preferenc učiteljev.
+- Uravnoteženost pedagoških ur.
+- Cilj: čim boljše zadovoljstvo obeh pogojev.
+
+Fitness funkcija bi torej vračala dve vrednosti, ki ju PyGAD optimizira ločeno.
+
+**Pomembna razlika:**
+
+Tvoja ideja, da se najprej optimizira prvi fitness, drugega pa upošteva samo ob enaki vrednosti prvega, se imenuje *lexicographic optimization*.
+
+To ni običajno obnašanje NSGA-II.
+
+Moje priporočilo: za nalogo uporabiva dve ločeni oceni in NSGA-II, da pravilno implementirava večciljno optimizacijo. Nato primerjava rezultate s prvo metodo, kjer uporabljava uteženo skupno fitness funkcijo.
+
+Tako bova lahko tudi analizirala, ali večciljna optimizacija doseže boljše kompromise med omejitvami.
+
+======================================================================
+UPORABNIK
+======================================================================
+
+Kako pa naj dosežem kompromis med omejitvami, če so ene bistveno pomembnejše od drugih
+
+======================================================================
+ASISTENT
+======================================================================
+
+V tem primeru morava ločiti med **iskanjem kompromisa** in **določanjem prioritet**.
+
+Pri NSGA-II v PyGAD so cilji privzeto enakovredni. Algoritem išče Pareto optimalne rešitve, ne pa rešitve, ki bi samodejno dala prednost prvemu fitnessu.
+
+Predlagam naslednji pristop:
+
+### Multi-objective fitness z absolutno prioriteto osnovnih omejitev
+
+Uporabimo dve ločeni fitness funkciji:
+
+**Fitness 1 – Preference**
+- Upoštevanje želja učiteljev.
+- Kazen za nezaželene termine.
+
+**Fitness 2 – Balance**
+- Uravnoteženost pedagoških ur med učitelji.
+
+V obe funkciji pa vključimo še zelo veliko kazen za kršenje osnovnih omejitev.
+
+Na primer:
+
+F₁ = PreferenceScore − M × Conflicts
+
+F₂ = BalanceScore − M × Conflicts
+
+`M` je dovolj velika konstanta, da nobena izboljšava mehkih omejitev ne more nadomestiti dodatnega konflikta.
+
+Tako dosežemo:
+1. Najprej imajo prednost urniki brez konfliktov.
+2. Med urniki z enakim številom konfliktov se iščejo boljše preference in uravnoteženost.
+3. Med enako dobrimi rešitvami glede enega cilja lahko algoritem išče kompromise glede drugega.
+
+**Moje priporočilo:** To je primeren pristop za tvojo nalogo. Tako ohraniva multi-objective optimization, hkrati pa zagotoviva, da so osnovne omejitve bistveno pomembnejše od mehkih.
+
+======================================================================
+UPORABNIK
+======================================================================
+
+Torej enako kot v prejšnjem primeru, le da sta zdaj to dve ločeni funkciji za vsako šibko omejitev posebej, medtem ko so močne omejitve uporabljene pri obeh?
+
+======================================================================
+ASISTENT
+======================================================================
+
+Tako je. Razlika je samo v tem, da pri multi-objective pristopu mehki omejitvi obravnavamo ločeno.
+
+Uporabimo dve fitness funkciji:
+
+**Fitness 1 – Teacher preferences**
+
+F₁ = 100 × F_strong + F_preferences
+
+**Fitness 2 – Teacher balance**
+
+F₂ = 100 × F_strong + F_balance
+
+Obe torej upoštevata močne omejitve, vendar vsaka optimizira svojo mehko omejitev.
+
+S tem dosežemo:
+- Močne omejitve imajo prednost v obeh funkcijah.
+- Prva funkcija izboljšuje preference učiteljev.
+- Druga funkcija izboljšuje uravnoteženost pedagoških ur.
+- NSGA-II išče rešitve, ki predstavljajo kompromise med obema ciljema.
+
+**Pomembno:** faktor 100 moramo ustrezno določiti glede na razpone vseh ocen, da izboljšanje mehke omejitve ne more upravičiti dodatnega konflikta.
+
+======================================================================
+UPORABNIK
+======================================================================
+
+Zapiši celotno transkripcijo pogovora o Task 3 in mi vrni txt datoteko.

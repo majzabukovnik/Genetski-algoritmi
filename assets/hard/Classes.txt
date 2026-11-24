@@ -1,0 +1,4 @@
+Programming [3, 2, 3]
+Math [2, 3, 3]
+Algorithms [2, 3, 3]
+OperatingSystems [2, 2, 3]

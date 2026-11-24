@@ -1,0 +1,4 @@
+Anna {"likes": [8, 9], "dislikes": [14, 15, 16, 17]}
+Brian {"likes": [8, 9, 10], "dislikes": [15, 16, 17]}
+Charles {"likes": [12, 13, 14], "dislikes": [8, 9]}
+Diana {"likes": [10, 11, 12], "dislikes": [8, 16, 17]}
